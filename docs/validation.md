@@ -30,6 +30,31 @@ Native compilation/runtime results must be read from the associated workflow run
 they are not inferred from standalone checks. Full source-installation testing is
 separate from using an existing Foundation 13 environment.
 
+## Recorded native result
+
+[Runner job: successful](https://github.com/khalifali/LAMFOAM/actions/runs/34525129120)
+on 2026-09-10, `lamfoam-local`, oxyControlFoam revision
+`13f60c3492bcc86c4a8c9a45837469c3b3c36afe`.
+
+- Full upstream OpenFOAM 13 Allwmake and both custom libraries compiled.
+- Combined activation loaded the solver and installed cylinder-ogrid 0.2.0.
+- Serial and two-rank uniform chemistry matched the independent reference;
+  the warm-up field and cumulative transfers remained frozen for ten timesteps.
+- Continuous and restarted two-rank uniform runs agreed within 1e-11 in all
+  balance columns, including time and concentrations. A test-only controller's
+  persisted call count was restored on both ranks.
+- The 3,072-cell O-grid passed native checkMesh and short dynamic-Lagrangian LES
+  startup, delayed oxygen activation and checkpoint continuation. Positive uptake
+  and supply and the closed-vessel balance checks passed.
+- The installer used an independent copy of matching cached OpenFOAM sources/build
+  objects and an authorized workstation mesher checkout. Its apt dependency
+  installation branch was not run.
+
+The workflow's archived logs and CSV outputs document these checks. The uniform
+restart comparison checks numerical equivalence for that controlled case; the
+short LES continuation checks successful restoration/advancement, not bitwise LES
+trajectory identity.
+
 ## Before research claims
 
 The full turbulent tank has not been physically qualified by a short CI job.

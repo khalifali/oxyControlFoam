@@ -31,9 +31,13 @@ packages. On a cluster, have the administrator provide the equivalent dependenci
 or load the matching modules, then omit that flag. The script currently selects
 system OpenMPI explicitly; adapt this deliberately for a site's MPI environment.
 
-The full source-build installer has not been executed in the development
-workspace. Shell checks have been performed; the first local build remains a
-required integration gate. No system-wide shell configuration is modified.
+The installer completed on the owner's `lamfoam-local` runner on 2026-09-10,
+including the full upstream Allwmake, module/controller build, mesher installation
+from an authorized local checkout, combined activation and native tests. The
+upstream build began from an independent copy of a matching cached source build;
+this was not a zero-cache machine installation. Existing system dependencies were
+used, so the optional apt installation path was syntax-checked but not executed.
+No system-wide shell configuration is modified.
 
 Upstream references: [OpenFOAM-13](https://github.com/OpenFOAM/OpenFOAM-13),
 [ThirdParty-13](https://github.com/OpenFOAM/ThirdParty-13), and the
@@ -48,12 +52,12 @@ a Linux/X64 runner for oxyControlFoam and set the Actions repository variable
 the ordinary kernel/syntax workflow still runs. Owner-authored same-repository
 changes are the only pull requests eligible for native execution.
 
-The initial implementation is being validated through a pinned, CI-only draft
+The initial implementation was validated through a pinned, CI-only draft
 workflow in LAMFOAM using the owner's existing `lamfoam-local` runner. It builds
 in an independent directory and does not change the LAMFOAM solver.
 
 The O-grid repository is private. With an authorized existing clone, pass
 `--mesher-path "$HOME/software/cylinder-ogrid"` to the installer. This uses that
 checkout and records its Git revision in the installation directory; it does not
-reset or modify the checkout. Without this option, Git needs noninteractive read
+reset the checkout; Python packaging may create generated build files. Without this option, Git needs noninteractive read
 access to the pinned private dependency. The source-build portions are public.
