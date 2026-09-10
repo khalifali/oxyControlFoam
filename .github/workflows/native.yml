@@ -6,11 +6,13 @@ permissions:
   contents: read
 concurrency:
   group: oxy-native
-  cancel-in-progress: false
+  cancel-in-progress: true
 jobs:
   native:
+    # Enable the repository variable only after registering a runner for this repo.
     # Execute only owner-authored same-repository work on the persistent machine.
     if: >-
+      vars.OXY_NATIVE_RUNNER_ENABLED == 'true' &&
       github.actor == 'khalifali' &&
       (github.event_name == 'workflow_dispatch' ||
        github.event.pull_request.head.repo.full_name == github.repository)

@@ -38,3 +38,16 @@ required integration gate. No system-wide shell configuration is modified.
 Upstream references: [OpenFOAM-13](https://github.com/OpenFOAM/OpenFOAM-13),
 [ThirdParty-13](https://github.com/OpenFOAM/ThirdParty-13), and the
 [upstream build entry point](https://github.com/OpenFOAM/OpenFOAM-13/blob/master/Allwmake).
+
+## Native CI runner
+
+A self-hosted runner registered only to LAMFOAM cannot accept jobs for a new
+repository automatically. To enable this repository's native workflow, register
+a Linux/X64 runner for oxyControlFoam and set the Actions repository variable
+`OXY_NATIVE_RUNNER_ENABLED` to `true`. Otherwise the native job is skipped and
+the ordinary kernel/syntax workflow still runs. Owner-authored same-repository
+changes are the only pull requests eligible for native execution.
+
+The initial implementation is being validated through a pinned, CI-only draft
+workflow in LAMFOAM using the owner's existing `lamfoam-local` runner. It builds
+in an independent directory and does not change the LAMFOAM solver.
