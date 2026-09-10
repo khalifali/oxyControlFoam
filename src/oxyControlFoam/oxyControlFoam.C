@@ -102,7 +102,7 @@ oxyControlFoam::oxyControlFoam(fvMesh& mesh)
         || state_.lookup<wordList>("probeNames")!=names_
         || state_.lookup<scalar>("sampleInterval")!=interval_))
         FatalErrorInFunction<<"Keep controller, probes and sample interval unchanged on restart"<<exit(FatalError);
-    const meshSearch search(mesh);
+    const meshSearch& search=meshSearch::New(mesh);
     forAll(names_,i) {
         locations_[i]=probes.subDict(names_[i]).lookup<vector>("position");
         label cell=search.findCell(locations_[i]);
