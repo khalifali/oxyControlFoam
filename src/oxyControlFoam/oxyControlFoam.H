@@ -2,13 +2,15 @@
 #pragma once
 #include "incompressibleFluid.H"
 #include "IOdictionary.H"
+#include "localIOdictionary.H"
 #include "Controller.hpp"
 #include <fstream>
 #include <memory>
 
 namespace Foam { namespace solvers {
 class oxyControlFoam : public incompressibleFluid {
-    IOdictionary cfg_, state_;
+    IOdictionary cfg_;
+    localIOdictionary state_;
     volScalarField oxygen_;
     word mode_;
     wordList names_;

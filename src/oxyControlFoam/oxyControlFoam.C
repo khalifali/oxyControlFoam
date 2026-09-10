@@ -49,7 +49,7 @@ scalarField oxyControlFoam::weights(const dictionary& d) const {
 oxyControlFoam::oxyControlFoam(fvMesh& mesh)
 : incompressibleFluid(mesh),
   cfg_(IOobject("oxyProperties",runTime.constant(),mesh,IOobject::MUST_READ,IOobject::NO_WRITE)),
-  state_(IOobject("oxyControlState",runTime.name()/"uniform",mesh,
+  state_(IOobject("oxyControlState",runTime.name(),"uniform",mesh,
       runTime.value()>0?IOobject::MUST_READ:IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE)),
   oxygen_(IOobject("oxygen",runTime.name(),mesh,IOobject::MUST_READ,IOobject::AUTO_WRITE),mesh),
   mode_(cfg_.lookup<word>("controller")),
@@ -213,7 +213,8 @@ void oxyControlFoam::persist() {
     Pstream::scatter(saved);state_.set("studentState",saved);
 }
 void oxyControlFoam::wallResolution() {
-    const volScalarField nu(viscosity->nu());
+    const tmp<volScalarField> tnu=viscosity->nu();
+    const volScalarField& nu=tnu();
     forAll(mesh.boundary(),patchi) {
         const fvPatch& patch=mesh.boundary()[patchi];
         if(!isA<wallFvPatch>(patch))continue;
