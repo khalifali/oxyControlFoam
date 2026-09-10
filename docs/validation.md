@@ -11,7 +11,11 @@ validation and slew limits. It also checks shell and Python syntax.
 These checks passed in the development workspace. Generation of the 3,072-cell
 smoke O-grid passed the mesher's checks: maximum non-orthogonality about 5.80°,
 maximum core-interface cell-size ratio 1.048, smoothing objective reached.
-Native checkMesh was not available in that workspace.
+Native checkMesh was not available in that workspace. A separate one-layer
+extrusion of the full-resolution research cross-section (16,384 cells) also passed
+the mesher's positive-volume, orientation and closure checks; maximum
+non-orthogonality was 10.88° and the maximum interface area ratio was 1.178.
+That check does not establish three-dimensional wall resolution.
 
 ## Native gates
 

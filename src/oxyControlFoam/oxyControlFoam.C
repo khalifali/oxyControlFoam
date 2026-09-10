@@ -69,6 +69,10 @@ oxyControlFoam::oxyControlFoam(fvMesh& mesh)
        || coefficient("saturation",dimMoles/dimVolume)<0
        || coefficient("maximumUptake",dimMoles/dimVolume/dimTime)<0)
         FatalErrorInFunction<<"Invalid oxygen/control parameters"<<exit(FatalError);
+    label invalidOxygen=0;
+    forAll(oxygen_,i)if(!std::isfinite(oxygen_[i]) || oxygen_[i]<0)invalidOxygen=1;
+    reduce(invalidOxygen,maxOp<label>());
+    if(invalidOxygen)FatalErrorInFunction<<"Initial/restarted oxygen must be finite and nonnegative"<<exit(FatalError);
     if(mode_!="constant" && mode_!="prescribed" && mode_!="student")
         FatalErrorInFunction<<"controller must be constant, prescribed or student"<<exit(FatalError);
     stirWeights_=weights(cfg_.subDict("stirrer"));
@@ -85,7 +89,7 @@ oxyControlFoam::oxyControlFoam(fvMesh& mesh)
     const scalar dt=runTime.deltaTValue();
     if(runTime.controlDict().lookupOrDefault<bool>("adjustTimeStep",false))
         FatalErrorInFunction<<"Use fixed deltaT so sampling and activation are exact"<<exit(FatalError);
-    for(const word key : {word("oxygenStartTime"),word("controlStartTime"),word("sampleInterval")}) {
+    for(const word key : {word("oxygenStartTime"),word("controlStartTime"),word("sampleInterval"),word("demandChangeTime")}) {
         const scalar value=coefficient(key,dimTime);
         if(value<0 || mag(value/dt-round(value/dt))>1e-6)
             FatalErrorInFunction<<key<<" must be nonnegative and a multiple of deltaT"<<exit(FatalError);
@@ -284,7 +288,7 @@ void oxyControlFoam::postSolve() {
     if(gMin(oxygen_.primitiveField())<0) FatalErrorInFunction<<"Negative transported oxygen: refine timestep/mesh"<<exit(FatalError);
     scalar supply=0,uptake=0;
     scalar q=coefficient("maximumUptake",dimMoles/dimVolume/dimTime);
-    if(runTime.value()>=coefficient("demandChangeTime",dimTime))q*=coefficient("demandMultiplier",dimless);
+    if(oxy::activeStep(runTime.value(),dt,coefficient("demandChangeTime",dimTime)))q*=coefficient("demandMultiplier",dimless);
     if(q<0) FatalErrorInFunction<<"Negative oxygen demand"<<exit(FatalError);
     scalar sat=coefficient("saturation",dimMoles/dimVolume), half=coefficient("halfSaturation",dimMoles/dimVolume);
     forAll(oxygen_,i) {

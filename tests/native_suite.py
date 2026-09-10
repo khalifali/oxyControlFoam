@@ -7,6 +7,9 @@ p=argparse.ArgumentParser(description=__doc__);p.add_argument('--output',type=Pa
 out=a.output.resolve()
 if out.exists():p.error('Choose a new output directory; results are never overwritten.')
 out.mkdir(parents=True)
+plugin=out/'libStateProbe.so'
+subprocess.run(['g++','-std=c++17','-shared','-fPIC','-I'+str(ROOT/'src/controller'),
+                str(ROOT/'tests/StateProbeController.C'),'-o',str(plugin)],check=True)
 def run(case,*cmd,tag=None):
     log=case/('log.'+(tag or cmd[0]));print(case,cmd,flush=True)
     with log.open('w') as f:
@@ -27,6 +30,7 @@ def uniform(name,parallel=False,end=.02):
     setting(case,'system/controlDict','endTime',end)
     # Exercise loading the student's controller without imposing a control law.
     setting(case,'constant/oxyProperties','controller','student')
+    setting(case,'constant/oxyProperties','studentLibrary','"'+str(plugin)+'"')
     run(case,'blockMesh');shutil.copytree(case/'0.backup',case/'0')
     if parallel:
         setting(case,'system/decomposeParDict','numberOfSubdomains',2)
@@ -44,6 +48,10 @@ for left,right in zip(balance(serial),balance(mpi)):
 restart=uniform('restart',True,.01)
 setting(restart,'system/controlDict','startTime',.01);setting(restart,'system/controlDict','endTime',.02)
 run(restart,'mpirun','-np','2','oxyControlFoam','-parallel',tag='restart')
+for case in (mpi,restart):
+    for rank in range(2):
+        state=(case/f'processor{rank}/0.02/uniform/oxyControlState').read_text()
+        assert re.search(r'studentState\s+(?:1\s*)?\(\s*2\s*\)',state),state
 reference=balance(mpi)[10:];continued=balance(restart,'0.01')
 assert len(reference)==len(continued)==10
 for left,right in zip(reference,continued):

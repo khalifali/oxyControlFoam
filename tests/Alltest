@@ -7,5 +7,6 @@ trap 'rm -rf -- "$build"' EXIT
 g++ -std=c++17 -Wall -Wextra -Werror tests/kernel.cpp -o "$build/kernel"
 "$build/kernel"
 g++ -std=c++17 -Wall -Wextra -Werror -Isrc/controller -fPIC -shared studentController/StudentController.C -o "$build/student.so"
+g++ -std=c++17 -Wall -Wextra -Werror -Isrc/controller -fPIC -shared tests/StateProbeController.C -o "$build/state-probe.so"
 while IFS= read -r file; do bash -n "$file"; done < <(find . -path './.git' -prune -o -type f \( -name 'All*' -o -name '*.sh' \) -print)
 python3 -m py_compile scripts/*.py tests/*.py
