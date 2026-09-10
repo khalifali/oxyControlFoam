@@ -11,6 +11,7 @@
 #include "PstreamReduceOps.H"
 #include "OSspecific.H"
 #include "fvModels.H"
+#include "meshSearch.H"
 #include "fvConstraints.H"
 #include "wallFvPatch.H"
 #include "mathematicalConstants.H"
@@ -79,7 +80,7 @@ oxyControlFoam::oxyControlFoam(fvMesh& mesh)
     supplyWeights_=weights(cfg_.subDict("supplyRegion"));
     if(coefficient("minKLa",dimless/dimTime)<0)
         FatalErrorInFunction<<"kLa bounds must be nonnegative"<<exit(FatalError);
-    for(const word actuator : {word("Omega"),word("KLa")}) {
+    for(const word& actuator : {word("Omega"),word("KLa")}) {
         const scalar lower=coefficient(word("min"+actuator),dimless/dimTime);
         const scalar upper=coefficient(word("max"+actuator),dimless/dimTime);
         const scalar initial=actuator=="Omega"?applied_.omega:applied_.kla;
@@ -89,7 +90,7 @@ oxyControlFoam::oxyControlFoam(fvMesh& mesh)
     const scalar dt=runTime.deltaTValue();
     if(runTime.controlDict().lookupOrDefault<bool>("adjustTimeStep",false))
         FatalErrorInFunction<<"Use fixed deltaT so sampling and activation are exact"<<exit(FatalError);
-    for(const word key : {word("oxygenStartTime"),word("controlStartTime"),word("sampleInterval"),word("demandChangeTime")}) {
+    for(const word& key : {word("oxygenStartTime"),word("controlStartTime"),word("sampleInterval"),word("demandChangeTime")}) {
         const scalar value=coefficient(key,dimTime);
         if(value<0 || mag(value/dt-round(value/dt))>1e-6)
             FatalErrorInFunction<<key<<" must be nonnegative and a multiple of deltaT"<<exit(FatalError);
@@ -101,9 +102,10 @@ oxyControlFoam::oxyControlFoam(fvMesh& mesh)
         || state_.lookup<wordList>("probeNames")!=names_
         || state_.lookup<scalar>("sampleInterval")!=interval_))
         FatalErrorInFunction<<"Keep controller, probes and sample interval unchanged on restart"<<exit(FatalError);
+    const meshSearch search(mesh);
     forAll(names_,i) {
         locations_[i]=probes.subDict(names_[i]).lookup<vector>("position");
-        label cell=mesh.findCell(locations_[i]);
+        label cell=search.findCell(locations_[i]);
         label owner=cell>=0?Pstream::myProcNo():labelMax;
         reduce(owner,minOp<label>());
         if(owner==labelMax) FatalErrorInFunction<<"Probe outside mesh: "<<names_[i]<<exit(FatalError);
