@@ -1,0 +1,8 @@
+oxyControlFoam is distributed under GPL-3.0-or-later.
+
+The momentum-equation assembly in src/oxyControlFoam/oxyControlFoam.C adapts
+OpenFOAM Foundation incompressibleFluid/momentumPredictor.C:
+Copyright (C) 2022-2023 OpenFOAM Foundation, GPL-3.0-or-later.
+Other module behavior links to the user's installed OpenFOAM Foundation 13.
+OpenFOAM is a trademark of its respective owner; this project is not an
+OpenFOAM Foundation release or endorsement.

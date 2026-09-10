@@ -1,0 +1,32 @@
+{
+  "radius": 0.05,
+  "height": 0.15,
+  "origin": [
+    0,
+    0,
+    0
+  ],
+  "axis": [
+    0,
+    0,
+    1
+  ],
+  "cells_per_quadrant": 8,
+  "radial_cells": 6,
+  "axial_cells": 12,
+  "core_fraction": 0.65,
+  "radial_grading": 0.5,
+  "axial_grading": 1,
+  "smoothing": {
+    "iterations": 1200,
+    "spacing_weight": 0.05,
+    "transition_weight": 1,
+    "protected_layers": 1,
+    "preserve_core_corners": false
+  },
+  "patch_types": {
+    "sideWall": "wall",
+    "bottom": "wall",
+    "top": "wall"
+  }
+}

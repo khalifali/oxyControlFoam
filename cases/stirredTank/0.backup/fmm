@@ -1,0 +1,20 @@
+// OpenFOAM Foundation 13 | oxyControlFoam | SI units
+// Read the numbered sections and comments before changing physical settings.
+FoamFile
+{
+    version 2.0; format ascii;
+    class volScalarField;
+    object fmm;
+}
+
+// 1. Dimensions and initial value. Oxygen: mol/m3; p: kinematic pressure.
+dimensions [0 4 -4 0 0 0 0];
+internalField uniform 1e-8;
+
+// 2. Closed, stationary tank: no fluid or oxygen flux through the walls.
+boundaryField
+{
+    sideWall { type zeroGradient; }
+    bottom { type zeroGradient; }
+    top { type zeroGradient; }
+}

@@ -1,0 +1,48 @@
+{
+  "radius": 0.05,
+  "height": 0.15,
+  "origin": [
+    0,
+    0,
+    0
+  ],
+  "axis": [
+    0,
+    0,
+    1
+  ],
+  "cells_per_quadrant": 64,
+  "radial_cells": 48,
+  "axial_cells": 192,
+  "core_fraction": 0.65,
+  "radial_grading": 0.02,
+  "axial_grading": [
+    {
+      "fraction": 0.12165747277705065,
+      "cells": 48,
+      "ratio": 20
+    },
+    {
+      "fraction": 0.7566850544458987,
+      "cells": 96,
+      "ratio": 1
+    },
+    {
+      "fraction": 0.12165747277705065,
+      "cells": 48,
+      "ratio": 0.05
+    }
+  ],
+  "smoothing": {
+    "iterations": 1200,
+    "spacing_weight": 0.05,
+    "transition_weight": 1,
+    "protected_layers": 1,
+    "preserve_core_corners": false
+  },
+  "patch_types": {
+    "sideWall": "wall",
+    "bottom": "wall",
+    "top": "wall"
+  }
+}

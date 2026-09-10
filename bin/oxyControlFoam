@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# OpenFOAM 13 uses solver modules loaded by foamRun.
+set -euo pipefail
+exec foamRun -solver oxyControlFoam "$@"

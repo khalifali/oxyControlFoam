@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# Task 1: build a NEW, conforming cylinder mesh. Never overwrite a run mesh.
+# Optional --smoke selects a coarse integration-check mesh, NOT wall-resolved LES.
+set -euo pipefail
+cd -- "$(dirname -- "${BASH_SOURCE[0]}")"
+[[ ! -e constant/polyMesh ]] || { echo 'Mesh exists; keep it for restart or use Allclean deliberately.' >&2; exit 1; }
+config=mesh.json
+if [[ ${1:-} == --smoke ]]; then config=mesh-smoke.json; fi
+stage=$(mktemp -d .mesh-build-XXXXXX)
+trap 'rm -rf -- "$stage"' EXIT
+python3 -m cylinder_ogrid.cli "$config" --output "$stage/generated" --no-preview
+# Task 2: retain the exact generated native mesh and its provenance.
+cp -a "$stage/generated/constant/polyMesh" constant/polyMesh
+cp "$stage/generated/config.resolved.json" "$stage/generated/quality.json" .
+touch mesh.foam
+# Task 3: native topology/geometry check. The solver is not started by this file.
+checkMesh -allTopology -allGeometry > log.checkMesh 2>&1
+grep -q 'Mesh OK.' log.checkMesh

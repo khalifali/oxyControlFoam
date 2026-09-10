@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# DESTRUCTIVE reset of generated results in this case only. Never run during CFD.
+# Preserves 0.backup, dictionaries, mesh configurations and all educational scripts.
+set -euo pipefail
+cd -- "$(dirname -- "${BASH_SOURCE[0]}")"
+[[ -f constant/oxyProperties && -d 0.backup ]] || exit 1
+shopt -s nullglob
+for dir in */; do
+    name=${dir%/}
+    if [[ $name =~ ^[0-9]+([.][0-9]+)?([eE][-+]?[0-9]+)?$ || $name =~ ^processor[0-9]+$ ]]; then
+        rm -rf -- "$dir"
+    fi
+done
+rm -rf -- constant/polyMesh postProcessing VTK
+rm -f -- log.* mesh.foam quality.json config.resolved.json
+# Reset only startup time, preserving the user's physical parameters.
+foamDictionary system/controlDict -entry startTime -set 0
+foamDictionary system/controlDict -entry startFrom -set startTime

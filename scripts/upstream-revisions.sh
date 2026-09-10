@@ -1,0 +1,3 @@
+# Reviewed source snapshots, recorded for repeatable builds.
+OPENFOAM_REVISION=18870c24d21c6b982e2cdec27b2f59738cca5f90
+THIRDPARTY_REVISION=ba1e22d69da30817a29cedfde3ea276719bec4e8

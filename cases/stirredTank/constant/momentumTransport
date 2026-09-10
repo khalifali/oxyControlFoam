@@ -1,0 +1,21 @@
+// OpenFOAM Foundation 13 | oxyControlFoam | SI units
+// Read the numbered sections and comments before changing physical settings.
+FoamFile
+{
+    version 2.0; format ascii;
+    class dictionary;
+    object momentumTransport;
+}
+
+// 1. Wall-resolved LES candidate: no velocity or nut wall functions.
+simulationType LES;
+LES
+{
+    model dynamicLagrangian; // Dynamic Smagorinsky with Lagrangian averaging.
+    dynamicLagrangianCoeffs { filter simple; theta 1.5; }
+    turbulence on;
+    printCoeffs on;
+    delta cubeRootVol;
+}
+// 2. flm/fmm in 0.backup are model startup seeds, not measured turbulence.
+// Qualify wall units and statistical convergence before calling this WRLES.
