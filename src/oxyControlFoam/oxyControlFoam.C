@@ -31,15 +31,20 @@ scalar oxyControlFoam::coefficient(const word& key,const dimensionSet& dims) con
     if(!std::isfinite(value)) FatalErrorInFunction<<key<<" must be finite"<<exit(FatalError);
     return value;
 }
-scalar oxyControlFoam::weight(const point& x,const dictionary& d) const {
-    if(d.lookupOrDefault<bool>("uniform",false)) return 1; // Verification case only.
+scalarField oxyControlFoam::weights(const dictionary& d) const {
+    scalarField result(mesh.nCells(),1);
+    if(d.lookupOrDefault<bool>("uniform",false))return result; // Verification only.
     const vector centre=dimensionedVector("centre",dimLength,d).value();
     const scalar radius=dimensionedScalar("radius",dimLength,d).value();
     const scalar height=dimensionedScalar("halfHeight",dimLength,d).value();
-    if(radius<=0 || height<=0) FatalErrorInFunction<<"Positive source dimensions required"<<exit(FatalError);
-    const vector r=x-centre;
-    scalar q=(sqr(r.x())+sqr(r.y()))/sqr(radius), z=sqr(r.z()/height);
-    return q<1 && z<1 ? sqr(1-q)*sqr(1-z) : 0;
+    if(!std::isfinite(mag(centre)+radius+height) || radius<=0 || height<=0)
+        FatalErrorInFunction<<"Finite, positive source dimensions required"<<exit(FatalError);
+    forAll(result,i) {
+        const vector r=mesh.C()[i]-centre;
+        const scalar q=(sqr(r.x())+sqr(r.y()))/sqr(radius), z=sqr(r.z()/height);
+        result[i]=q<1 && z<1 ? sqr(1-q)*sqr(1-z) : 0;
+    }
+    return result;
 }
 oxyControlFoam::oxyControlFoam(fvMesh& mesh)
 : incompressibleFluid(mesh),
@@ -66,6 +71,17 @@ oxyControlFoam::oxyControlFoam(fvMesh& mesh)
         FatalErrorInFunction<<"Invalid oxygen/control parameters"<<exit(FatalError);
     if(mode_!="constant" && mode_!="prescribed" && mode_!="student")
         FatalErrorInFunction<<"controller must be constant, prescribed or student"<<exit(FatalError);
+    stirWeights_=weights(cfg_.subDict("stirrer"));
+    supplyWeights_=weights(cfg_.subDict("supplyRegion"));
+    if(coefficient("minKLa",dimless/dimTime)<0)
+        FatalErrorInFunction<<"kLa bounds must be nonnegative"<<exit(FatalError);
+    for(const word actuator : {word("Omega"),word("KLa")}) {
+        const scalar lower=coefficient(word("min"+actuator),dimless/dimTime);
+        const scalar upper=coefficient(word("max"+actuator),dimless/dimTime);
+        const scalar initial=actuator=="Omega"?applied_.omega:applied_.kla;
+        if(lower>upper || initial<lower || initial>upper)
+            FatalErrorInFunction<<"Invalid initial/state command or bounds: "<<actuator<<exit(FatalError);
+    }
     const scalar dt=runTime.deltaTValue();
     if(runTime.controlDict().lookupOrDefault<bool>("adjustTimeStep",false))
         FatalErrorInFunction<<"Use fixed deltaT so sampling and activation are exact"<<exit(FatalError);
@@ -237,13 +253,15 @@ void oxyControlFoam::momentumPredictor() {
         mesh,dimensionedVector(dimVelocity,vector::zero));
     const scalar seedEnd=dimensionedScalar("perturbationDuration",dimTime,drive).value();
     const scalar seed=dimensionedScalar("perturbationVelocity",dimVelocity,drive).value();
+    const scalar halfHeight=dimensionedScalar("halfHeight",dimLength,drive).value();
+    const scalar sourceRadius=dimensionedScalar("radius",dimLength,drive).value();
     forAll(rate,i) {
         vector r=mesh.C()[i]-centre;
-        rate[i]=weight(mesh.C()[i],drive)/tau;
+        rate[i]=stirWeights_[i]/tau;
         target[i]=applied_.omega*vector(-r.y(),r.x(),0);
         if(runTime.value()<seedEnd && seedEnd>0) {
-            scalar a=atan2(r.y(),r.x()), f=seed*sqr(1-runTime.value()/seedEnd);
-            target[i]+=f*vector(sin(3*a),cos(2*a),sin(a+constant::mathematical::pi*r.z()/dimensionedScalar("halfHeight",dimLength,drive).value()));
+            scalar a=atan2(r.y(),r.x()), f=seed*sqr(1-runTime.value()/seedEnd)*min(scalar(1),sqrt(sqr(r.x())+sqr(r.y()))/sourceRadius);
+            target[i]+=f*vector(sin(3*a),cos(2*a),sin(a+constant::mathematical::pi*r.z()/halfHeight));
         }
     }
     tUEqn=(fvm::ddt(U_)+fvm::div(phi,U_)+MRF.DDt(U_)+momentumTransport->divDevSigma(U_)
@@ -269,7 +287,7 @@ void oxyControlFoam::postSolve() {
     if(q<0) FatalErrorInFunction<<"Negative oxygen demand"<<exit(FatalError);
     scalar sat=coefficient("saturation",dimMoles/dimVolume), half=coefficient("halfSaturation",dimMoles/dimVolume);
     forAll(oxygen_,i) {
-        scalar a=applied_.kla*weight(mesh.C()[i],cfg_.subDict("supplyRegion"));
+        scalar a=applied_.kla*supplyWeights_[i];
         scalar next=oxy::monodStep(oxygen_[i],dt,a,sat,q,half);
         oxygen_[i]=next;
         supply+=dt*a*(sat-next)*mesh.V()[i];

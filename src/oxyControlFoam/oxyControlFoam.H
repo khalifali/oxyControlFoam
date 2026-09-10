@@ -14,6 +14,7 @@ class oxyControlFoam : public incompressibleFluid {
     wordList names_;
     vectorField locations_;
     labelList cells_;
+    scalarField stirWeights_, supplyWeights_;
     scalar interval_, lastSample_, initialInventory_, cumulativeSupply_, cumulativeUptake_;
     oxy::Command applied_;
     std::unique_ptr<oxy::Controller> controller_;
@@ -21,7 +22,7 @@ class oxyControlFoam : public incompressibleFluid {
     std::ofstream probesLog_, actuatorLog_, budgetLog_, wallLog_, flowLog_;
     scalar inventory() const;
     scalar coefficient(const word&,const dimensionSet&) const;
-    scalar weight(const point&,const dictionary&) const;
+    scalarField weights(const dictionary&) const;
     void sampleAndControl();
     void persist();
     void wallResolution();
