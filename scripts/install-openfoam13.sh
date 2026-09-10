@@ -7,18 +7,25 @@ repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 prefix="$HOME/OpenFOAM-oxy"
 jobs=4
 install_deps=false
+mesher_path=
+# CI must fail clearly if authentication is unavailable, never wait for input.
+export GIT_TERMINAL_PROMPT=0 GCM_INTERACTIVE=Never PIP_NO_INPUT=1
 while (($#)); do
     case $1 in
         --prefix) prefix=${2:?Missing installation directory}; shift 2 ;;
         --jobs) jobs=${2:?Missing job count}; shift 2 ;;
+        --mesher-path) mesher_path=${2:?Missing local mesher checkout}; shift 2 ;;
         --install-deps) install_deps=true; shift ;;
-        --help) echo "Usage: $0 [--prefix DIR] [--jobs N] [--install-deps]"; exit 0 ;;
+        --help) echo "Usage: $0 [--prefix DIR] [--jobs N] [--install-deps] [--mesher-path DIR]"; exit 0 ;;
         *) echo "Unknown option: $1" >&2; exit 2 ;;
     esac
 done
 [[ $jobs =~ ^[1-9][0-9]*$ ]] || { echo 'jobs must be a positive integer' >&2; exit 2; }
 # Upstream wmake scripts require source paths without whitespace.
 [[ $prefix != *[[:space:]]* && $repo != *[[:space:]]* ]] || { echo 'Use paths without whitespace.' >&2; exit 2; }
+if [[ -n $mesher_path && ! -f "$mesher_path/pyproject.toml" ]]; then
+    echo "Missing authorized mesher checkout: $mesher_path" >&2; exit 1
+fi
 mkdir -p -- "$prefix"
 prefix=$(cd -- "$prefix" && pwd)
 # Task 1: optional system dependencies. Only this explicit flag uses sudo/apt.
@@ -64,8 +71,19 @@ command -v checkMesh >/dev/null
 "$repo/Allwmake" 2>&1 | tee "$prefix/log.oxyControlFoam"
 # Task 6: isolate Python mesh dependencies; pin the existing O-grid implementation.
 python3 -m venv "$prefix/mesh-venv"
-"$prefix/mesh-venv/bin/python" -m pip install \
-    'git+https://github.com/khalifali/cylinder-ogrid.git@447b3831e5f85e4e6cbd22135f9ccc9322a94003'
+if [[ -n $mesher_path ]]; then
+    [[ -f "$mesher_path/pyproject.toml" ]] || { echo "Missing mesher checkout: $mesher_path" >&2; exit 1; }
+    "$prefix/mesh-venv/bin/python" -m pip install "$mesher_path"
+    git -C "$mesher_path" rev-parse HEAD > "$prefix/mesher-revision.txt"
+else
+    "$prefix/mesh-venv/bin/python" -m pip install \
+        'git+https://github.com/khalifali/cylinder-ogrid.git@447b3831e5f85e4e6cbd22135f9ccc9322a94003' || {
+        echo 'cylinder-ogrid requires authorized Git access. Retry with --mesher-path /path/to/your/checkout.' >&2
+        exit 1
+    }
+    echo 447b3831e5f85e4e6cbd22135f9ccc9322a94003 > "$prefix/mesher-revision.txt"
+fi
+"$prefix/mesh-venv/bin/python" -m pip freeze > "$prefix/python-packages.txt"
 # Task 7: generate one activation file. Do not modify the user's shell startup.
 activate="$prefix/activate-oxyControlFoam.sh"
 {

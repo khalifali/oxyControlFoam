@@ -16,16 +16,19 @@ Do not interpret the LES dictionary or nominal Reynolds number as validation.
 
 ## Installation and activation
 
-On Ubuntu 24.04 with Bash, from this repository:
+On Ubuntu 24.04 with Bash, from this repository and using your authorized local
+`cylinder-ogrid` checkout:
 
 ```bash
-./scripts/install-openfoam13.sh --install-deps --jobs 4 --prefix "$HOME/OpenFOAM-oxy"
+./scripts/install-openfoam13.sh --install-deps --jobs 4 --prefix "$HOME/OpenFOAM-oxy" \
+    --mesher-path "$HOME/software/cylinder-ogrid"
 source "$HOME/OpenFOAM-oxy/activate-oxyControlFoam.sh"
 ```
 
 The installer builds pinned OpenFOAM-13 and ThirdParty-13 sources, this solver,
 and the separate student-controller library. It also creates a Python environment
-with a pinned cylinder-ogrid mesh generator. `--install-deps` explicitly enables
+with the selected cylinder-ogrid checkout (or a pinned remote revision when no
+local path is supplied). `--install-deps` explicitly enables
 system package installation through apt/sudo; omit it when dependencies already
 exist. Choose parallel build jobs for your available memory. Full compilation can
 take substantial time and disk space.
@@ -105,3 +108,9 @@ obtain mg/L. Open the generated `mesh.foam` with ParaView's OpenFOAM reader; ena
 latest written fields and retains processor directories for restart.
 
 Licensed GPL-3.0-or-later; see [NOTICE](NOTICE) and [LICENSE](LICENSE).
+
+The O-grid repository is private. With an authorized existing clone, pass
+`--mesher-path "$HOME/software/cylinder-ogrid"` to the installer. This uses that
+checkout and records its Git revision in the installation directory; it does not
+reset or modify the checkout. Without this option, Git needs noninteractive read
+access to the pinned private dependency. The source-build portions are public.

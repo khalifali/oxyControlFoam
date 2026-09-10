@@ -51,3 +51,9 @@ changes are the only pull requests eligible for native execution.
 The initial implementation is being validated through a pinned, CI-only draft
 workflow in LAMFOAM using the owner's existing `lamfoam-local` runner. It builds
 in an independent directory and does not change the LAMFOAM solver.
+
+The O-grid repository is private. With an authorized existing clone, pass
+`--mesher-path "$HOME/software/cylinder-ogrid"` to the installer. This uses that
+checkout and records its Git revision in the installation directory; it does not
+reset or modify the checkout. Without this option, Git needs noninteractive read
+access to the pinned private dependency. The source-build portions are public.
