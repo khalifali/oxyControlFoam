@@ -9,23 +9,28 @@ an independent control strategy. The two actuator commands are rotational source
 speed and local oxygen-transfer coefficient. The supplied controller simply holds
 its commands; it does not implement a feedback law.
 
-**Status:** initial implementation. Standalone numerical tests and a coarse mesh
-generation check have passed. Native OpenFOAM compilation, serial/MPI integration,
-restart equivalence, and turbulent wall-resolution qualification are still pending.
-Do not interpret the LES dictionary or nominal Reynolds number as validation.
+**Status:** OpenFOAM 13 and solver compilation, environment activation, serial/MPI
+oxygen checks, delayed activation, restart equivalence, stateful controller
+restoration and short LES startup/continuation passed on `lamfoam-local`.
+[Native validation run](https://github.com/khalifali/LAMFOAM/actions/runs/34525129120).
+The full research tank still requires developed-flow and wall-resolution
+qualification; the short CI case does not establish either.
 
 ## Installation and activation
 
-On Ubuntu 24.04 with Bash, from this repository:
+On Ubuntu 24.04 with Bash, from this repository and using your authorized local
+`cylinder-ogrid` checkout:
 
 ```bash
-./scripts/install-openfoam13.sh --install-deps --jobs 4 --prefix "$HOME/OpenFOAM-oxy"
+./scripts/install-openfoam13.sh --install-deps --jobs 4 --prefix "$HOME/OpenFOAM-oxy" \
+    --mesher-path "$HOME/software/cylinder-ogrid"
 source "$HOME/OpenFOAM-oxy/activate-oxyControlFoam.sh"
 ```
 
 The installer builds pinned OpenFOAM-13 and ThirdParty-13 sources, this solver,
 and the separate student-controller library. It also creates a Python environment
-with a pinned cylinder-ogrid mesh generator. `--install-deps` explicitly enables
+with the selected cylinder-ogrid checkout (or a pinned remote revision when no
+local path is supplied). `--install-deps` explicitly enables
 system package installation through apt/sudo; omit it when dependencies already
 exist. Choose parallel build jobs for your available memory. Full compilation can
 take substantial time and disk space.
@@ -105,3 +110,9 @@ obtain mg/L. Open the generated `mesh.foam` with ParaView's OpenFOAM reader; ena
 latest written fields and retains processor directories for restart.
 
 Licensed GPL-3.0-or-later; see [NOTICE](NOTICE) and [LICENSE](LICENSE).
+
+The O-grid repository is private. With an authorized existing clone, pass
+`--mesher-path "$HOME/software/cylinder-ogrid"` to the installer. This uses that
+checkout and records its Git revision in the installation directory; it does not
+reset the checkout; Python packaging may create generated build files. Without this option, Git needs noninteractive read
+access to the pinned private dependency. The source-build portions are public.

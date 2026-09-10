@@ -1,0 +1,31 @@
+// OpenFOAM Foundation 13 | oxyControlFoam | SI units
+// Read the numbered sections and comments before changing physical settings.
+FoamFile
+{
+    version 2.0; format ascii;
+    class dictionary;
+    object controlDict;
+}
+
+// 1. OpenFOAM 13 loads our module via foamRun (launcher: oxyControlFoam).
+application foamRun;
+solver oxyControlFoam;
+libs ("liboxyControlFoam.so");
+startFrom startTime;
+startTime 0;
+stopAt endTime;
+endTime 0.02; // Initial flow-qualification window; uptake/control studies need longer.
+deltaT 0.001;
+adjustTimeStep false; // Keep controller/measurement timing reproducible.
+writeControl timeStep;
+writeInterval 10; // Every 0.1 s; CSV measurements every 0.01 s.
+purgeWrite 0;
+writeFormat ascii;
+writePrecision 17;
+writeCompression off;
+timeFormat general;
+timePrecision 12;
+runTimeModifiable false;
+
+// No LES diagnostics in this analytic verification case.
+functions {}

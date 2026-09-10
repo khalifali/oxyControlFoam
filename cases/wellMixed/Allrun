@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# Task 1: protect previous verification output.
+set -euo pipefail
+cd -- "$(dirname -- "${BASH_SOURCE[0]}")"
+[[ ! -d 0 && ! -d postProcessing ]] || { echo 'Run Allclean deliberately first.' >&2; exit 1; }
+# Task 2: build a small cube and initialise homogeneous oxygen, zero velocity.
+blockMesh > log.blockMesh 2>&1
+checkMesh > log.checkMesh 2>&1
+grep -q 'Mesh OK.' log.checkMesh
+cp -a 0.backup 0
+# Task 3: run the actual solver; compare against the implicit analytic root.
+oxyControlFoam > log.oxyControlFoam 2>&1
+python3 ../../tests/check_well_mixed.py .
+touch mesh.foam

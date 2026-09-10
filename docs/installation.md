@@ -1,0 +1,63 @@
+# Installation notes
+
+The installer targets Linux/Bash, GCC, system OpenMPI, and OpenFOAM Foundation 13.
+Ubuntu 24.04 is the intended dependency baseline. Other Debian-derived systems
+may need package adjustments; macOS and Windows-native builds are not covered.
+WSL2 with Ubuntu is a possible environment, but has not been tested here.
+
+## Explicit tasks performed
+
+1. Parse the destination and compile-job count; reject paths with whitespace
+   because upstream build scripts use unquoted source paths.
+2. Optionally install build-essential, Git, Flex, Bison, CMake, zlib development
+   headers, OpenMPI, readline/ncurses/Xt development headers, and Python/venv/pip.
+3. Clone OpenFOAM-13 and ThirdParty-13 and check out the exact commits recorded in
+   `scripts/upstream-revisions.sh`. Existing mismatched or edited checkouts cause
+   a stop rather than losing local work.
+4. Source the upstream environment and compile the bundled ThirdParty components,
+   libraries and applications using upstream `Allwmake`.
+5. Build `liboxyControlFoam.so` and `liboxyStudentController.so` into
+   `$FOAM_USER_LIBBIN` using `wmake`.
+6. Install the pinned O-grid package in `<prefix>/mesh-venv`.
+7. Write `<prefix>/activate-oxyControlFoam.sh`, which activates all three components.
+
+OpenFOAM source and third-party build logs live at `<prefix>/log.OpenFOAM13`;
+the solver build log is `<prefix>/log.oxyControlFoam`. Rerunning on the same
+unmodified revisions resumes incremental compilation. The installer does not run
+the expensive tank simulation. Run `cases/wellMixed/Allrun` after activation.
+
+A normal run needs no root privileges. Only `--install-deps` installs system
+packages. On a cluster, have the administrator provide the equivalent dependencies
+or load the matching modules, then omit that flag. The script currently selects
+system OpenMPI explicitly; adapt this deliberately for a site's MPI environment.
+
+The installer completed on the owner's `lamfoam-local` runner on 2026-09-10,
+including the full upstream Allwmake, module/controller build, mesher installation
+from an authorized local checkout, combined activation and native tests. The
+upstream build began from an independent copy of a matching cached source build;
+this was not a zero-cache machine installation. Existing system dependencies were
+used, so the optional apt installation path was syntax-checked but not executed.
+No system-wide shell configuration is modified.
+
+Upstream references: [OpenFOAM-13](https://github.com/OpenFOAM/OpenFOAM-13),
+[ThirdParty-13](https://github.com/OpenFOAM/ThirdParty-13), and the
+[upstream build entry point](https://github.com/OpenFOAM/OpenFOAM-13/blob/master/Allwmake).
+
+## Native CI runner
+
+A self-hosted runner registered only to LAMFOAM cannot accept jobs for a new
+repository automatically. To enable this repository's native workflow, register
+a Linux/X64 runner for oxyControlFoam and set the Actions repository variable
+`OXY_NATIVE_RUNNER_ENABLED` to `true`. Otherwise the native job is skipped and
+the ordinary kernel/syntax workflow still runs. Owner-authored same-repository
+changes are the only pull requests eligible for native execution.
+
+The initial implementation was validated through a pinned, CI-only draft
+workflow in LAMFOAM using the owner's existing `lamfoam-local` runner. It builds
+in an independent directory and does not change the LAMFOAM solver.
+
+The O-grid repository is private. With an authorized existing clone, pass
+`--mesher-path "$HOME/software/cylinder-ogrid"` to the installer. This uses that
+checkout and records its Git revision in the installation directory; it does not
+reset the checkout; Python packaging may create generated build files. Without this option, Git needs noninteractive read
+access to the pinned private dependency. The source-build portions are public.

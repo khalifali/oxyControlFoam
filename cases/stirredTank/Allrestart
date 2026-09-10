@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# CONTINUE a saved run: edit controlDict startTime/endTime before calling.
+# To begin uptake from a developed-flow checkpoint, set oxygenStartTime to that
+# saved time (or later). Previously frozen oxygen is preserved, not reinitialised.
+set -euo pipefail
+cd -- "$(dirname -- "${BASH_SOURCE[0]}")"
+start=$(foamDictionary system/controlDict -entry startTime -value)
+end=$(foamDictionary system/controlDict -entry endTime -value)
+awk -v s="$start" -v e="$end" 'BEGIN {exit !(s>0 && e>s)}' || { echo 'Choose a positive saved time and later endTime.' >&2; exit 1; }
+ranks=$(foamDictionary system/decomposeParDict -entry numberOfSubdomains -value)
+# Task 1: require complete fluid, oxygen, LES and controller state on every rank.
+for ((rank=0;rank<ranks;++rank)); do
+    for file in U p phi oxygen nut flm fmm uniform/oxyControlState; do
+        [[ -s processor$rank/$start/$file ]] || { echo "Missing processor$rank/$start/$file" >&2; exit 1; }
+    done
+done
+# Task 2: no remeshing, decomposition, initial-field copy or controller reset.
+foamDictionary system/controlDict -entry startFrom -set startTime
+mpirun -np "$ranks" oxyControlFoam -parallel > "log.restart_${start}" 2>&1
+# Task 3: reconstruct latest fields; earlier state and CSV segments are retained.
+reconstructPar -latestTime > log.reconstructPar 2>&1

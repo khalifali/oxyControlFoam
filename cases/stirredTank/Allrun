@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# FRESH simulation. Source OF13 and oxyControlFoam/scripts/activate.sh first.
+# Read constant/oxyProperties: source, sink, activation times, probes, actuators.
+set -euo pipefail
+cd -- "$(dirname -- "${BASH_SOURCE[0]}")"
+command -v oxyControlFoam >/dev/null
+# Task 1: protect existing results. This script never cleans a completed run.
+shopt -s nullglob
+old=(processor[0-9]*)
+[[ ! -e postProcessing ]] || old+=(postProcessing)
+((${#old[@]}==0)) || { echo 'Results exist. Use Allrestart or deliberate Allclean.' >&2; exit 1; }
+[[ $(foamDictionary system/controlDict -entry startTime -value) == 0 ]] || { echo 'Fresh runs start at 0.' >&2; exit 1; }
+# Task 2: generate and check the chosen mesh, unless already prepared by Allmesh.
+if [[ ! -d constant/polyMesh ]]; then ./Allmesh; fi
+checkMesh -allTopology -allGeometry > log.checkMesh 2>&1
+grep -q 'Mesh OK.' log.checkMesh
+# Task 3: copy educational initial fields; initialise dynamic LES averaging fields.
+[[ ! -d 0 ]] || { echo 'Initial directory exists: inspect before cleaning.' >&2; exit 1; }
+cp -a 0.backup 0
+foamDictionary system/controlDict -entry startFrom -set startTime
+# Task 4: decompose using the explicit dictionary rank count.
+ranks=$(foamDictionary system/decomposeParDict -entry numberOfSubdomains -value)
+decomposePar > log.decomposePar 2>&1
+# Task 5: run. Measurements and requested/applied commands go to CSV.
+mpirun -np "$ranks" oxyControlFoam -parallel > log.oxyControlFoam 2>&1
+# Task 6: reconstruct the latest fields for inspection. Retain processors for restart.
+reconstructPar -latestTime > log.reconstructPar 2>&1
+touch mesh.foam

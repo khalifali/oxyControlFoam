@@ -1,0 +1,67 @@
+// OpenFOAM Foundation 13 | oxyControlFoam | SI units
+// Read the numbered sections and comments before changing physical settings.
+FoamFile
+{
+    version 2.0; format ascii;
+    class dictionary;
+    object oxyProperties;
+}
+
+// 1. Physical coefficients: all values are SI, oxygen amounts are mol.
+rho [1 -3 0 0 0 0 0] 998;
+molecularDiffusivity [0 2 -1 0 0 0 0] 0;
+turbulentSchmidt [0 0 0 0 0 0 0] 0.7;
+saturation [0 -3 0 0 1 0 0] 0.25; // 8 mg/L O2; illustrative equilibrium value.
+halfSaturation [0 -3 0 0 1 0 0] 0.01;
+maximumUptake [0 -3 -1 0 1 0 0] 0.002;
+// Demand disturbance: multiply maximumUptake at the specified physical time.
+demandChangeTime [0 0 1 0 0 0 0] 60;
+demandMultiplier [0 0 0 0 0 0 0] 1.5;
+
+// 1b. Flow development before oxygen/control activation (physical seconds).
+// Provisional times: qualify the flow first; these are not turbulence criteria.
+oxygenStartTime [0 0 1 0 0 0 0] 0.01;
+controlStartTime [0 0 1 0 0 0 0] 0.01;
+// Set oxygenStartTime=0 for simultaneous startup, or beyond endTime for flow-only.
+
+// 2. Smooth C1 cylindrical support, stationary in the laboratory frame.
+// Dimensions describe the SOURCE, not a blade or the whole tank.
+stirrer
+{
+    centre [0 1 0 0 0 0 0] (0 0 0.06);
+    radius [0 1 0 0 0 0 0] 0.03;
+    halfHeight [0 1 0 0 0 0 0] 0.025;
+    tau [0 0 1 0 0 0 0] 0.02;
+    // Finite startup disturbance breaks exact symmetry; vanishes after 0.2 s.
+    perturbationDuration [0 0 1 0 0 0 0] 0.2;
+    perturbationVelocity [0 1 -1 0 0 0 0] 0;
+}
+supplyRegion { uniform true; } // Spatially uniform ONLY for analytic verification.
+// Supply = weight*kLa*(saturation-oxygen); no liquid volume is injected.
+// Local kLa is not the whole-vessel kLa; account for weighted source volume.
+
+// 3. Controller selection. No feedback law is imposed by this case.
+controller constant; // constant | prescribed | student
+studentLibrary "liboxyStudentController.so";
+sampleInterval [0 0 1 0 0 0 0] 0.01;
+initialOmega [0 0 -1 0 0 0 0] 0; // Verification: no rotation.
+initialKLa [0 0 -1 0 0 0 0] 0.02;
+// Prescribed mode: (time_s omega_rad_s localKLa_1_s), linearly interpolated.
+schedule ((0 30 1) (10 30 1) (12 40 1) (20 40 1.2));
+
+// 4. Actuator constraints, applied after the requested command is calculated.
+minOmega [0 0 -1 0 0 0 0] 0;
+maxOmega [0 0 -1 0 0 0 0] 60;
+omegaRate [0 0 -2 0 0 0 0] 20;
+minKLa [0 0 -1 0 0 0 0] 0;
+maxKLa [0 0 -1 0 0 0 0] 3;
+klaRate [0 0 -2 0 0 0 0] 0.5;
+
+// 5. Add as many named probes as needed. Positions are metres.
+// Measurements use the containing-cell value; refine/probe-check as needed.
+measurements
+{
+    lowerProbe { position (0.025 0 0.03); }
+    middleProbe { position (0.02 0 0.075); }
+    upperProbe { position (0.015 0 0.12); }
+}

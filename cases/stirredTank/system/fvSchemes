@@ -1,0 +1,25 @@
+// OpenFOAM Foundation 13 | oxyControlFoam | SI units
+// Read the numbered sections and comments before changing physical settings.
+FoamFile
+{
+    version 2.0; format ascii;
+    class dictionary;
+    object fvSchemes;
+}
+
+// 1. Scalar transport/reaction uses first-order splitting and Euler in time.
+ddtSchemes { default backward; ddt(oxygen) Euler; }
+gradSchemes { default Gauss linear; }
+divSchemes
+{
+    default none;
+    div(phi,U) Gauss linear; // Low dissipation LES; check Courant number.
+    div(phi,oxygen) Gauss upwind; // Bounded startup reference, assess scalar diffusion.
+    div(phi,flm) Gauss limitedLinear 1;
+    div(phi,fmm) Gauss limitedLinear 1;
+    div(devTau) Gauss linear;
+}
+laplacianSchemes { default Gauss linear corrected; }
+interpolationSchemes { default linear; }
+snGradSchemes { default corrected; }
+fluxRequired { default no; p; oxygen; }

@@ -1,0 +1,46 @@
+name: Native OpenFOAM 13 verification
+on:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: oxy-native
+  cancel-in-progress: true
+jobs:
+  native:
+    # Enable the repository variable only after registering a runner for this repo.
+    # Execute only owner-authored same-repository work on the persistent machine.
+    if: >-
+      vars.OXY_NATIVE_RUNNER_ENABLED == 'true' &&
+      github.actor == 'khalifali' &&
+      (github.event_name == 'workflow_dispatch' ||
+       github.event.pull_request.head.repo.full_name == github.repository)
+    runs-on: [self-hosted, Linux, X64]
+    timeout-minutes: 240
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: source
+          persist-credentials: false
+      - name: Build isolated OpenFOAM and solver installation
+        shell: bash
+        run: |
+          cd source
+          ./scripts/install-openfoam13.sh --jobs 4 --prefix "$GITHUB_WORKSPACE/persistent/oxy-install"
+      - name: Verify native serial, MPI, warm-up, restart and LES startup
+        shell: bash
+        run: |
+          source "$GITHUB_WORKSPACE/persistent/oxy-install/activate-oxyControlFoam.sh"
+          cd source
+          ./tests/Alltest
+          python3 tests/native_suite.py --output "$GITHUB_WORKSPACE/results-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: native-logs-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            results-*/**/log.*
+            results-*/**/postProcessing/oxyControl/**/*.csv
+            persistent/oxy-install/log.*
+          if-no-files-found: warn
